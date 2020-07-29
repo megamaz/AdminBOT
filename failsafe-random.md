@@ -37,4 +37,5 @@ You just got **Gamered!**
 ||Line 5-8: Dad
 ||Line 34: <Clex>
 ||Thanks to XKCD for making his comics. Check https://xkcd.com/1700 to understand line 12.
-|| \ # I recommend opening this file as a RAW to make it easier to read.
+||
+ # I recommend opening this file as a RAW to make it easier to read.
