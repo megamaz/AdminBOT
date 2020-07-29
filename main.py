@@ -65,14 +65,16 @@ async def on_ready():
     print(f'{client.user.name} Is online and usable.')
     caller = client.get_user(604079048758394900)
 
-    debug = await client.get_channel(736419014171164683)
+    debug = client.get_channel(736419014171164683)
     await DebugMess('info', 'AdminBOT has come online')
 
 async def DebugMess(debugtype, text):
     
     debugtype = str(debugtype)
-    
-    return await debug.send(f'{debugtype.upper()} ({datetime.datetime.now()}):    {text}')
+    with open(get_local_path('debug.txt'), 'a') as debugtext:
+        debugtext.write((f'{debugtype.upper()} ({datetime.datetime.now()}):    {text}\n'))
+
+    return await debug.send(f'{debugtype.upper()} ({datetime.datetime.now()}):    `{text}`')
 
 def ChangePresence(presence):
     presence = presence.split()
@@ -100,7 +102,7 @@ def check_admin(author):
     return (author).guild_permissions.administrator
 
 def get_random_message():
-    random_message = get_local_path('failsafe-random.txt')
+    random_message = get_local_path('failsafe-random.md')
     random_desc = []
     with open(random_message, 'r') as random_mess:
         random_mess_len = random_mess.read().splitlines()
@@ -152,40 +154,6 @@ def time_convert(sec):
   hours = hours % 24
   return f'{days} days, {hours}h {mins}min {int(sec)}sec'
 
-def get_guild_info(guildID):
-    info = get_local_path(f'{guildID}_info.txt')
-    if os.path.exists(info):
-        with open(info, 'r') as info_fd:
-            guild_info = info_fd.read().splitlines()
-            guild_info_str = ''
-            # Sort guild info into string to return (guild_info_str)
-            for x in guild_info:
-                if x.startswith(']ID'):
-                    guild_info_str += 'ID\n'+str(guildID)
-                elif x.startswith(']NAME'):
-                    guild_name = client.get_guild(guildID)
-                    guild_info_str += '\nName\n'+str(guild_name)
-                elif x.startswith(']BANS'):
-                    for y in guild_info:
-                        if y != ']BANS' or y != ']ID':
-                            if y == ']KICKS':
-                                break
-                            else:
-                                continue
-                        else:
-                            guild_info_str += '\n'+y+'\n'
-                    
-                    for a in guild_info:
-                        if a != ']KICKS' or y != ']ID' or y != ']BANS':
-                            if a == 'END':
-                                break
-                            else:
-                                continue
-                        else:
-                            guild_info_str += '\n'+a+'\n'
-    else:
-        with open(info, 'w') as info_fd:
-            info_fd.write(']ID\n]BANS\n\n]KICKS\n\nEND')
 
                 
 def update_censor(server, AR, censor=''):
@@ -226,54 +194,31 @@ def update_censor(server, AR, censor=''):
             return 'complete'
     
 
-def set_list_item(lists):
-    lists[0] = bool(lists[0])
-
-    return lists
 
 def Get_Commands(): # Simplest way I could think of that could get all the commands down to one list.
     bot_commands = "censor uncensor censored clear_censor announce kick ban join clear_data".split()
     return bot_commands
 
-# def update_settings(settingID, serverid, update_check=False): #BUG
-#     # DIfferent settings:
-#     # ID:0 Failsafe message. If the failsafe message is turned to (false), AdminBOT will simply react with an error.
-    
-#     server_sett = get_local_path(f'{serverid}_sett.txt')
-#     if os.path.exists(server_sett):
-#         with open(server_sett, 'r') as settings_FD:
-#             settings_list = settings_FD.read().splitlines()
-#             if settingID == 'READ':
-#                 return settings_list
-#             elif settingID <= len(settings_list-1):
-                
-#                 if settings_list[settingID]:
-#                     setting_list[settingID] = False
-#                 else:
-#                     setting_list[settingID] = True
-#     else:
-#         #Creates it then updates setting.
-#         with open(server_sett, 'w') as settings_FD:
-#             settings_FD.write(f'True\nTrue')
     
 
 def random_char():
     return str(random.choice(char_list))
 
+# All commands are stored in on_message
 @client.event
 async def on_message(message):
     try:
+
         breaking = False
         global start
 
         if str(message.channel.type) == 'text':
+            
             global last_message
             breaking = False
             def check_message(command):
-                if message.content.lower() == f'{prefix}{command}':
-                    return True
-                else:
-                    return False
+                return message.content.lower() == f'{prefix}{command}'
+            
             if message.author == client.user:
                 return
             
@@ -286,6 +231,7 @@ async def on_message(message):
 
                 if int(message.author.id) == 604079048758394900:
                     if str(message.content).lower() == f'{prefix}embed':
+                        DebugMess('info', 'Debug command triggered')
                         await message.channel.send(content="content", embed=discord.Embed(type="rich", title="title", description="description [Google](http://google.com)", colour=discord.Color.from_rgb(255,180,0)).set_footer(text="FooterText", icon_url="https://cdn.discordapp.com/attachments/643995974007652353/729431318198222939/unknown.png").set_image(url="https://cdn.discordapp.com/attachments/643995974007652353/729432020744142848/unknown.png").set_thumbnail(url="https://cdn.discordapp.com/attachments/643995974007652353/729432224709083336/unknown.png").set_author(name="AuthorName", icon_url="https://cdn.discordapp.com/attachments/643995974007652353/729431085490110495/unknown.png", url="http://google.com").add_field(name='FieldName', value="FieldValue [Google](http://google.com)", inline=True))
                 
                 
@@ -390,10 +336,10 @@ inline=False)
                         await message.delete()
                     else:
                         if str(message.content).lower()[10:] in update_censor(int(message.guild.id), 'read'):
-                            await message.channel.send(embed=emb_text('Checking word', 'Word is in list', 'The word you checked is censored', 'success'))
+                            await message.channel.send(embed=discord.Embed(title='Word is in list', description='Word checked was in the lsit.'))
                             return
                         else:
-                            await message.channel.send(embed=emb_text('Checking word', 'Word is not in list', 'The word you checked is not censored', 'fail'))
+                            await message.channel.send(embed=discord.Embed(title='Word is not in list', description='Word checked was not in censored list.'))
                 elif message.content.lower().startswith(f"{prefix}clear_censor") and check_admin(message.author):
                     list_length = len(update_censor(int(message.guild.id), 'read'))
                     update_censor(int(message.guild.id), 'clear')
@@ -481,7 +427,7 @@ inline=False)
                     status = await message.channel.send("Clearing Data...")
                     os.remove(get_local_path(str(message.guild.id) + ".txt"))
                     await status.edit(content="Removed censored words...")
-                
+
                 elif str(message.content).startswith(f'{prefix}clean') and check_admin(message.author):
                     if str(message.content) == f'{prefix}clean':
                         message.channel.send(embed=discord.Embed(title="Please include an amount", description="Please include an amount of message to remove."))
@@ -538,8 +484,9 @@ inline=False)
             global caller
             global megamaz
             global presence
-            # if int(message.author.id) == 651226650616528907 or int(message.author.id) == 642149752951144468:
-                # return
+            if int(message.author.id) == int(client.user.id):
+                DebugMess('INFO', 'detected self DM')
+                return
             if message.author.id == caller.id and is_in_conv:
                 await megamaz.send(f"{caller.name} says: `{message.content}`")
             elif int(message.author.id) != 604079048758394900: # my ID
@@ -630,6 +577,7 @@ inline=False)
     
     #EEEEEEEEEE, I BUG-ged!
     except Exception as error:
+        DebugMess('warn', "AdminBOT's failsafe has been triggered")
         random_desc = get_random_message()
         channel = client.get_channel(650837623295705118)
         # the beneath line is the old failsafe. It was too big and got replaced with a simple warning reaction. Emb_text no longer exists.
